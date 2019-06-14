@@ -1,0 +1,56 @@
+{
+    "variables": {
+      "vpc": "{{env `BUILD_VPC_ID`}}",
+      "subnet": "{{env `BUILD_SUBNET_ID`}}",
+      "aws_region": "{{env `AWS_REGION`}}",
+      "ami_name": "centos7-valenciadevops-{{isotime \"2006-01-02\"}}"
+    },
+    "builders": [{
+      "name": "AWS AMI Builder - ValenciaDevOps",
+      "type": "amazon-ebs",
+      "region": "{{user `aws_region`}}",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "encrypt_boot": true,
+      "force_deregister": "true",
+      "force_delete_snapshot": "true",
+      "source_ami_filter": {
+        "filters": {
+          "virtualization-type": "hvm",
+          "name": "*CentOS Linux 7 x86_64 HVM EBS ENA 1901_0*",
+          "root-device-type": "ebs"
+      },
+      "owners": ["679593333241"],
+      "most_recent": true
+      },
+      "instance_type": "t3a.medium",
+      "associate_public_ip_address": "true",
+      "ssh_username": "centos",
+      "ami_name": "{{user `ami_name` | clean_ami_name}}",
+      "ami_description": "ValenciaDevOps",
+      "tags": {
+         "Name": "valenciadevops"
+    }}],
+    "provisioners": [
+      {
+      "type": "shell",
+      "inline": [
+        "sudo easy_install pip",
+        "pip --version",
+        "sudo pip install boto3",
+        "sudo pip install ansible",
+        "sudo yum install epel-release -y",
+        "sudo yum install -y jq",
+        "region=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)",
+        "sudo yum install -y https://amazon-ssm-$region.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm",
+        "sudo systemctl enable amazon-ssm-agent"
+      ]},
+     {
+      "type": "ansible-local",
+      "playbook_file": "../ansible/playbook.yml",
+      "role_paths": [
+        "../ansible/roles/nginx"
+      ]
+    }
+   ] 
+  }
